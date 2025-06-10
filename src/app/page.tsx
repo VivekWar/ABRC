@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import AuthForm from '@/components/AuthForm';
-import Layout from '@/app/layout';
+import Layout from '@/app/Layout';
 import Home from '@/components/Home';
 import Travel from '@/components/Travel';
 import About from '@/components/About';

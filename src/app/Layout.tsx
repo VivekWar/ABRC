@@ -3,6 +3,14 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Home, Car, Info, AlertTriangle, User, LogOut, Menu, X } from 'lucide-react';
 
+// interface LayoutProps {
+//   children: React.ReactNode;
+//   activeTab: string;
+//   onTabChange: (tab: string) => void;
+//   user: any;
+//   onLogout: () => void;
+// }
+
 interface LayoutProps {
   children: React.ReactNode;
   activeTab: string;
