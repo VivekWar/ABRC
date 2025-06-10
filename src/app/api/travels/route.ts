@@ -1,29 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
-import jwt from 'jsonwebtoken';
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient();
-
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
-    const travels = await prisma.travel.findMany({
-      where: { isActive: true },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            photo: true,
-            mobile: true
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
+    const { destination, departureTime, maxPassengers, preferredMode } = await request.json();
+
+    // Validate required fields
+    if (!destination || !departureTime || !preferredMode || preferredMode.length === 0) {
+      return NextResponse.json(
+        { error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // For now, return a mock success response
+    // Later you can integrate with your database
+    const travel = {
+      id: Date.now().toString(),
+      destination,
+      departureTime,
+      maxPassengers,
+      preferredMode,
+      userId: 'mock-user-id',
+      createdAt: new Date().toISOString()
+    };
+
+    return NextResponse.json({ 
+      success: true, 
+      travel 
     });
 
-    return NextResponse.json({ travels });
   } catch (error) {
-    console.error('Error fetching travels:', error);
+    console.error('Error creating travel:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
@@ -31,29 +38,29 @@ export async function GET() {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function GET() {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET!) as any;
-    const { destination, departureTime, maxPassengers, preferredMode } = await request.json();
-
-    const travel = await prisma.travel.create({
-      data: {
-        userId: decoded.userId,
-        destination,
-        departureTime: new Date(departureTime),
-        maxPassengers,
-        preferredMode
+    // Return mock travels for now
+    const travels = [
+      {
+        id: '1',
+        destination: 'Airport',
+        departureTime: '2025-06-11T10:00:00',
+        maxPassengers: 4,
+        currentPassengers: 2,
+        preferredMode: ['Cab'],
+        user: {
+          id: '1',
+          name: 'John Doe',
+          photo: null,
+          mobile: '+91 9876543210'
+        }
       }
-    });
+    ];
 
-    return NextResponse.json({ travel });
+    return NextResponse.json({ travels });
   } catch (error) {
-    console.error('Error creating travel:', error);
+    console.error('Error fetching travels:', error);
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

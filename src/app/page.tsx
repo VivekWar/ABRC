@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import AuthForm from '@/components/AuthForm';
-import Layout from '@/app/Layout';
+import Layout from '@/components/Layout';
 import Home from '@/components/Home';
 import Travel from '@/components/Travel';
 import About from '@/components/About';
@@ -9,17 +9,22 @@ import Report from '@/components/Report';
 import Account from '@/components/Account';
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState('home');
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check for existing token
     const token = localStorage.getItem('token');
     const userData = localStorage.getItem('user');
     
     if (token && userData) {
-      setUser(JSON.parse(userData));
+      try {
+        setUser(JSON.parse(userData));
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+      }
     }
   }, []);
 
