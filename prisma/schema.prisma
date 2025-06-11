@@ -55,3 +55,4 @@ model RideRequest {
   
   @@map("ride_requests")
 }
+

@@ -69,7 +69,6 @@ export default function AuthForm({ onLogin, onSignup, isLoading }: AuthFormProps
                   onChange={(e) => handleInputChange('name', e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   placeholder="Enter your full name"
-                  style={{ pointerEvents: 'auto' }} // Force interactivity
                 />
               </div>
             )}
@@ -85,7 +84,6 @@ export default function AuthForm({ onLogin, onSignup, isLoading }: AuthFormProps
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Enter your email"
-                style={{ pointerEvents: 'auto' }} // Force interactivity
               />
             </div>
 
@@ -100,18 +98,16 @@ export default function AuthForm({ onLogin, onSignup, isLoading }: AuthFormProps
                 onChange={(e) => handleInputChange('password', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                 placeholder="Enter your password"
-                style={{ pointerEvents: 'auto' }} // Force interactivity
               />
             </div>
 
             <button
               type="submit"
               disabled={isLoading}
-              onClick={(e) => {
-                console.log('Button clicked!'); // Debug log
+              onClick={() => {
+                console.log('Button clicked!'); // Debug log - FIXED: removed unused 'e' parameter
               }}
               className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all disabled:opacity-50"
-              style={{ pointerEvents: 'auto', cursor: 'pointer' }} // Force interactivity
             >
               {isLoading ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Sign In')}
             </button>
@@ -125,7 +121,6 @@ export default function AuthForm({ onLogin, onSignup, isLoading }: AuthFormProps
                 setIsSignUp(!isSignUp);
               }}
               className="text-purple-600 hover:text-purple-700 font-medium cursor-pointer"
-              style={{ pointerEvents: 'auto' }} // Force interactivity
             >
               {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
             </button>

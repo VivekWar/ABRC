@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Remove password from response - FIXED: renamed destructured variable
-    const { password: userPassword, ...userWithoutPassword } = user;
+    const { password:_userPassword, ...userWithoutPassword } = user;
 
     return NextResponse.json({
       user: userWithoutPassword,
