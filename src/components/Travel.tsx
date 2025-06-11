@@ -1,13 +1,19 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Clock, Users, Car, Plus, Calendar } from 'lucide-react';
+import { MapPin, Calendar, Users, Car, Plus, X } from 'lucide-react';
 
-interface TravelProps {
-  user: any;
+interface User {
+  id: string;
+  name: string;
+  email: string;
 }
 
-export default function Travel({ user }: TravelProps) {
+interface TravelProps {
+  user: User | null;
+}
+
+function Travel({ user }: TravelProps) {
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -17,24 +23,30 @@ export default function Travel({ user }: TravelProps) {
     preferredMode: [] as string[]
   });
 
-  const transportModes = ['Auto', 'Cab', 'Bus', 'Bike', 'Any'];
+  const transportModes = ['Cab', 'Auto', 'Bus', 'Bike'];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      console.log('Submitting travel form...'); // Debug log
+      
       const response = await fetch('/api/travels', {
         method: 'POST',
         headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData),
       });
 
+      console.log('Response status:', response.status); // Debug log
+      
+      const data = await response.json();
+      console.log('Response data:', data); // Debug log
+
       if (response.ok) {
-        alert('Travel posted successfully!');
+        alert(data.message || 'Travel posted successfully!');
         setShowForm(false);
         setFormData({
           destination: '',
@@ -42,12 +54,23 @@ export default function Travel({ user }: TravelProps) {
           maxPassengers: 4,
           preferredMode: []
         });
+        
+        // Use localStorage to trigger refresh in other components
+        localStorage.setItem('lastTravelUpdate', Date.now().toString());
+        
+        // Also dispatch a storage event
+        window.dispatchEvent(new StorageEvent('storage', {
+          key: 'lastTravelUpdate',
+          newValue: Date.now().toString()
+        }));
+        
+        console.log('Travel created successfully, events dispatched'); // Debug log
       } else {
-        alert('Failed to post travel');
+        alert(data.error || 'Failed to post travel');
       }
     } catch (error) {
-      console.error('Error posting travel:', error);
-      alert('Error posting travel');
+      console.error('Network Error:', error);
+      alert('Network error - please check your connection');
     } finally {
       setLoading(false);
     }
@@ -67,52 +90,35 @@ export default function Travel({ user }: TravelProps) {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white p-6 rounded-xl"
+        className="bg-gradient-to-r from-green-600 to-teal-600 text-white p-6 rounded-xl"
       >
         <h1 className="text-2xl font-bold mb-2">Plan Your Journey</h1>
-        <p className="opacity-90">Share your travel plans and find companions for your next trip.</p>
+        <p className="opacity-90">Create a travel plan and find companions to share the ride.</p>
       </motion.div>
 
-      {!showForm ? (
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="text-center py-12"
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-800">Create New Travel</h2>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowForm(!showForm)}
+          className="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center space-x-2"
         >
-          <Car className="w-16 h-16 text-indigo-600 mx-auto mb-4" />
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">Ready to travel?</h3>
-          <p className="text-gray-600 mb-6">Create a new travel plan and find your perfect travel companions.</p>
-          
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setShowForm(true)}
-            className="bg-indigo-600 text-white px-8 py-3 rounded-lg font-semibold flex items-center space-x-2 mx-auto hover:bg-indigo-700 transition-colors"
-          >
-            <Plus className="w-5 h-5" />
-            <span>Create Travel Plan</span>
-          </motion.button>
-        </motion.div>
-      ) : (
+          {showForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
+          <span>{showForm ? 'Cancel' : 'New Travel'}</span>
+        </motion.button>
+      </div>
+
+      {showForm && (
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
           className="bg-white rounded-xl shadow-lg p-6"
         >
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold text-gray-800">Create Travel Plan</h2>
-            <button
-              onClick={() => setShowForm(false)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              ✕
-            </button>
-          </div>
-
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <MapPin className="w-4 h-4 inline mr-2" />
+                <MapPin className="w-4 h-4 inline mr-1" />
                 Destination
               </label>
               <input
@@ -120,14 +126,14 @@ export default function Travel({ user }: TravelProps) {
                 required
                 value={formData.destination}
                 onChange={(e) => setFormData({...formData, destination: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                placeholder="Where are you going?"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                placeholder="Enter destination"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Calendar className="w-4 h-4 inline mr-2" />
+                <Calendar className="w-4 h-4 inline mr-1" />
                 Departure Time
               </label>
               <input
@@ -135,32 +141,32 @@ export default function Travel({ user }: TravelProps) {
                 required
                 value={formData.departureTime}
                 onChange={(e) => setFormData({...formData, departureTime: e.target.value})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
             </div>
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                <Users className="w-4 h-4 inline mr-2" />
+                <Users className="w-4 h-4 inline mr-1" />
                 Maximum Passengers
               </label>
               <select
                 value={formData.maxPassengers}
                 onChange={(e) => setFormData({...formData, maxPassengers: parseInt(e.target.value)})}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
               >
-                {[1, 2, 3, 4, 5, 6].map(num => (
+                {[1,2,3,4,5,6,7,8].map(num => (
                   <option key={num} value={num}>{num} passenger{num > 1 ? 's' : ''}</option>
                 ))}
               </select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-3">
-                <Car className="w-4 h-4 inline mr-2" />
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Car className="w-4 h-4 inline mr-1" />
                 Preferred Transport Mode
               </label>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 {transportModes.map(mode => (
                   <motion.button
                     key={mode}
@@ -170,8 +176,8 @@ export default function Travel({ user }: TravelProps) {
                     onClick={() => handleModeToggle(mode)}
                     className={`p-3 rounded-lg border-2 transition-all ${
                       formData.preferredMode.includes(mode)
-                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
-                        : 'border-gray-300 hover:border-indigo-300'
+                        ? 'border-green-500 bg-green-50 text-green-700'
+                        : 'border-gray-300 hover:border-green-300'
                     }`}
                   >
                     {mode}
@@ -180,29 +186,20 @@ export default function Travel({ user }: TravelProps) {
               </div>
             </div>
 
-            <div className="flex space-x-4">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="flex-1 bg-gray-200 text-gray-800 py-3 px-6 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
-              >
-                Cancel
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                disabled={loading || formData.preferredMode.length === 0}
-                className="flex-1 bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors disabled:opacity-50"
-              >
-                {loading ? 'Creating...' : 'Create Travel Plan'}
-              </motion.button>
-            </div>
+            <motion.button
+              type="submit"
+              disabled={loading || formData.preferredMode.length === 0}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="w-full bg-gradient-to-r from-green-600 to-teal-600 text-white py-3 px-6 rounded-lg font-semibold hover:from-green-700 hover:to-teal-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Creating Travel...' : 'Create Travel Plan'}
+            </motion.button>
           </form>
         </motion.div>
       )}
     </div>
   );
 }
+
+export default Travel;

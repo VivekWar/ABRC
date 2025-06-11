@@ -1,41 +1,59 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MapPin, Users, Phone, Car, Clock, User } from 'lucide-react';
+import { MapPin, Users, Car, Clock, Plus } from 'lucide-react';
 
-interface Travel {
+interface User {
   id: string;
-  destination: string;
-  preferredMode: string[];
-  departureTime: string;
-  maxPassengers: number;
-  currentPassengers: number;
-  user: {
-    id: string;
-    name: string;
-    photo?: string;
-    mobile?: string;
-  };
+  name: string;
+  email: string;
 }
 
 interface HomeProps {
-  user: any;
+  user: User | null;
 }
 
-export default function Home({ user }: HomeProps) {
-  const [travels, setTravels] = useState<Travel[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedTravel, setSelectedTravel] = useState<Travel | null>(null);
+interface TravelWithUser {
+  id: string;
+  destination: string;
+  departureTime: string;
+  maxPassengers: number;
+  currentPassengers: number;
+  preferredMode: string[];
+  isActive: boolean;
+  user: {
+    id: string;
+    name: string;
+    photo: string | null;
+    mobile: string | null;
+  };
+}
 
-  useEffect(() => {
-    fetchTravels();
-  }, []);
+function Home({ user }: HomeProps) {
+  const [travels, setTravels] = useState<TravelWithUser[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchTravels = async () => {
     try {
-      const response = await fetch('/api/travels');
+      console.log('Fetching travels from API...'); // Debug log
+      
+      const response = await fetch('/api/travels', {
+        cache: 'no-store', // Prevent caching
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+      
       const data = await response.json();
-      setTravels(data.travels || []);
+      
+      console.log('API Response:', data); // Debug log
+      
+      if (data.success) {
+        setTravels(data.travels);
+        console.log('Travels updated in state:', data.travels.length); // Debug log
+      } else {
+        console.error('Failed to fetch travels:', data.error);
+      }
     } catch (error) {
       console.error('Error fetching travels:', error);
     } finally {
@@ -43,25 +61,31 @@ export default function Home({ user }: HomeProps) {
     }
   };
 
-  const handleJoinRide = async (travelId: string) => {
-    try {
-      const response = await fetch('/api/ride-requests', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ travelId }),
-      });
-
-      if (response.ok) {
-        alert('Ride request sent successfully!');
-        fetchTravels(); // Refresh the list
-      } else {
-        alert('Failed to send ride request');
+  useEffect(() => {
+    console.log('Home component mounted, fetching initial travels'); // Debug log
+    fetchTravels();
+    
+    // Listen for storage events (when new travel is created)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'lastTravelUpdate') {
+        console.log('Storage event received, refreshing travels'); // Debug log
+        fetchTravels();
       }
-    } catch (error) {
-      console.error('Error joining ride:', error);
-      alert('Error joining ride');
-    }
-  };
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also poll every 5 seconds for new travels
+    const interval = setInterval(() => {
+      console.log('Polling for new travels...'); // Debug log
+      fetchTravels();
+    }, 5000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
+  }, []);
 
   if (loading) {
     return (
@@ -86,158 +110,107 @@ export default function Home({ user }: HomeProps) {
         <p className="opacity-90">Find your perfect travel companion and share the journey.</p>
       </motion.div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {travels.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="col-span-full text-center py-12"
-          >
-            <Car className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-600 mb-2">No active travels</h3>
-            <p className="text-gray-500">Be the first to create a travel plan!</p>
-          </motion.div>
-        ) : (
-          travels.map((travel, index) => (
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold text-gray-800">
+          Available Travels ({travels.length})
+        </h2>
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            console.log('Manual refresh clicked'); // Debug log
+            fetchTravels();
+          }}
+          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 transition-colors flex items-center space-x-2"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Refresh</span>
+        </motion.button>
+      </div>
+
+      {travels.length === 0 ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="text-center py-12"
+        >
+          <Car className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">No active travels</h3>
+          <p className="text-gray-500">Be the first to create a travel plan!</p>
+        </motion.div>
+      ) : (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {travels.map((travel, index) => (
             <motion.div
               key={travel.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: index * 0.1 }}
-              className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all border border-gray-200"
+              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow"
             >
-              <div className="p-6">
-                {/* User Info */}
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full flex items-center justify-center text-white font-semibold">
-                    {travel.user.photo ? (
-                      <img
-                        src={travel.user.photo}
-                        alt={travel.user.name}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <User className="w-6 h-6" />
-                    )}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-gradient-to-r from-purple-400 to-indigo-400 rounded-full flex items-center justify-center text-white font-bold">
+                    {travel.user.name.charAt(0)}
                   </div>
-                  <div className="ml-3">
+                  <div>
                     <h3 className="font-semibold text-gray-800">{travel.user.name}</h3>
-                    <p className="text-sm text-gray-500">Traveler</p>
+                    <p className="text-sm text-gray-500">{travel.user.mobile}</p>
                   </div>
                 </div>
+                <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                  Active
+                </span>
+              </div>
 
-                {/* Travel Details */}
-                <div className="space-y-3">
-                  <div className="flex items-center text-gray-600">
-                    <MapPin className="w-4 h-4 mr-2 text-purple-600" />
-                    <span className="font-medium">{travel.destination}</span>
-                  </div>
-
-                  <div className="flex items-center text-gray-600">
-                    <Clock className="w-4 h-4 mr-2 text-purple-600" />
-                    <span>{new Date(travel.departureTime).toLocaleString()}</span>
-                  </div>
-
-                  <div className="flex items-center text-gray-600">
-                    <Users className="w-4 h-4 mr-2 text-purple-600" />
-                    <span>{travel.currentPassengers}/{travel.maxPassengers} passengers</span>
-                  </div>
-
-                  <div className="flex items-center text-gray-600">
-                    <Car className="w-4 h-4 mr-2 text-purple-600" />
-                    <span>{travel.preferredMode.join(', ')}</span>
-                  </div>
+              <div className="space-y-3">
+                <div className="flex items-center space-x-2">
+                  <MapPin className="w-4 h-4 text-purple-600" />
+                  <span className="text-gray-700">{travel.destination}</span>
                 </div>
 
-                {/* Action Button */}
-                <div className="mt-6 flex space-x-2">
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => setSelectedTravel(travel)}
-                    className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
-                  >
-                    View Details
-                  </motion.button>
-                  {travel.user.id !== user?.id && travel.currentPassengers < travel.maxPassengers && (
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleJoinRide(travel.id)}
-                      className="bg-green-600 text-white py-2 px-4 rounded-lg hover:bg-green-700 transition-colors"
-                    >
-                      Join
-                    </motion.button>
-                  )}
+                <div className="flex items-center space-x-2">
+                  <Clock className="w-4 h-4 text-purple-600" />
+                  <span className="text-gray-700">
+                    {new Date(travel.departureTime).toLocaleString()}
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Users className="w-4 h-4 text-purple-600" />
+                  <span className="text-gray-700">
+                    {travel.currentPassengers}/{travel.maxPassengers} passengers
+                  </span>
+                </div>
+
+                <div className="flex items-center space-x-2">
+                  <Car className="w-4 h-4 text-purple-600" />
+                  <div className="flex space-x-1">
+                    {travel.preferredMode.map((mode, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded"
+                      >
+                        {mode}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </motion.div>
-          ))
-        )}
-      </div>
 
-      {/* Travel Details Modal */}
-      {selectedTravel && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
-          onClick={() => setSelectedTravel(null)}
-        >
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-xl p-6 max-w-md w-full"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-xl font-bold mb-4">Travel Details</h3>
-            
-            <div className="space-y-3">
-              <div className="flex items-center">
-                <User className="w-5 h-5 mr-3 text-purple-600" />
-                <span>{selectedTravel.user.name}</span>
-              </div>
-              
-              {selectedTravel.user.mobile && (
-                <div className="flex items-center">
-                  <Phone className="w-5 h-5 mr-3 text-purple-600" />
-                  <span>{selectedTravel.user.mobile}</span>
-                </div>
-              )}
-              
-              <div className="flex items-center">
-                <MapPin className="w-5 h-5 mr-3 text-purple-600" />
-                <span>{selectedTravel.destination}</span>
-              </div>
-              
-              <div className="flex items-center">
-                <Car className="w-5 h-5 mr-3 text-purple-600" />
-                <span>{selectedTravel.preferredMode.join(', ')}</span>
-              </div>
-            </div>
-
-            <div className="mt-6 flex space-x-3">
-              <button
-                onClick={() => setSelectedTravel(null)}
-                className="flex-1 bg-gray-200 text-gray-800 py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors"
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                className="w-full mt-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-2 px-4 rounded-lg font-semibold hover:from-purple-700 hover:to-indigo-700 transition-all"
               >
-                Close
-              </button>
-              {selectedTravel.user.id !== user?.id && (
-                <button
-                  onClick={() => {
-                    handleJoinRide(selectedTravel.id);
-                    setSelectedTravel(null);
-                  }}
-                  className="flex-1 bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Join Ride
-                </button>
-              )}
-            </div>
-          </motion.div>
-        </motion.div>
+                Join Travel
+              </motion.button>
+            </motion.div>
+          ))}
+        </div>
       )}
     </div>
   );
 }
+
+export default Home;
