@@ -40,8 +40,8 @@ export async function POST(request: NextRequest) {
       { expiresIn: '7d' }
     );
 
-    // Remove password from response
-    const { password: _, ...userWithoutPassword } = user;
+    // Remove password from response - FIXED LINE
+    const { password: userPassword, ...userWithoutPassword } = user;
 
     return NextResponse.json({
       user: userWithoutPassword,

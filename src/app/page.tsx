@@ -8,8 +8,22 @@ import About from '@/components/About';
 import Report from '@/components/Report';
 import Account from '@/components/Account';
 
+// Define proper User interface
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  mobile?: string;
+  rollNumber?: string;
+  branch?: string;
+  photo?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export default function App() {
-  const [user, setUser] = useState<any>(null);
+  // FIXED: Replace any with proper User type
+  const [user, setUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState('home');
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +34,7 @@ export default function App() {
     if (token && userData) {
       try {
         setUser(JSON.parse(userData));
-      } catch (error) {
+      } catch (error: unknown) {
         console.error('Error parsing user data:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
@@ -46,7 +60,7 @@ export default function App() {
       } else {
         alert(data.error || 'Login failed');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
       alert('Login failed');
     } finally {
@@ -72,7 +86,7 @@ export default function App() {
       } else {
         alert(data.error || 'Signup failed');
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('Signup error:', error);
       alert('Signup failed');
     } finally {

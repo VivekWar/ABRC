@@ -1,8 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+interface TravelRequest {
+  destination: string;
+  departureTime: string;
+  maxPassengers: number;
+  preferredMode: string[];
+}
+
+interface Travel {
+  id: string;
+  destination: string;
+  departureTime: string;
+  maxPassengers: number;
+  preferredMode: string[];
+  userId: string;
+  createdAt: string;
+}
+
+interface TravelWithUser {
+  id: string;
+  destination: string;
+  departureTime: string;
+  maxPassengers: number;
+  currentPassengers: number;
+  preferredMode: string[];
+  user: {
+    id: string;
+    name: string;
+    photo: string | null;
+    mobile: string;
+  };
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const { destination, departureTime, maxPassengers, preferredMode } = await request.json();
+    const { destination, departureTime, maxPassengers, preferredMode }: TravelRequest = await request.json();
 
     // Validate required fields
     if (!destination || !departureTime || !preferredMode || preferredMode.length === 0) {
@@ -13,8 +45,7 @@ export async function POST(request: NextRequest) {
     }
 
     // For now, return a mock success response
-    // Later you can integrate with your database
-    const travel = {
+    const travel: Travel = {
       id: Date.now().toString(),
       destination,
       departureTime,
@@ -29,10 +60,11 @@ export async function POST(request: NextRequest) {
       travel 
     });
 
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error creating travel:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error: ' + errorMessage },
       { status: 500 }
     );
   }
@@ -41,7 +73,7 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     // Return mock travels for now
-    const travels = [
+    const travels: TravelWithUser[] = [
       {
         id: '1',
         destination: 'Airport',
@@ -59,10 +91,11 @@ export async function GET() {
     ];
 
     return NextResponse.json({ travels });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error('Error fetching travels:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error: ' + errorMessage },
       { status: 500 }
     );
   }
